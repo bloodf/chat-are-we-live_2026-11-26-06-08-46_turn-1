@@ -1,0 +1,10 @@
+import { EMOTE } from './icons';
+import { money, fmt } from '../core/rng';
+import type { ComponentChildren } from 'preact';
+import { assetURL } from '../three/materials';
+export const img = (p: string) => assetURL(p);
+export const Rich = ({ text }: { text: string }) => <>{text.split(/(:[a-zA-Z]+:)/g).map((t, i) => { const m = /^:([a-zA-Z]+):$/.exec(t); const e = m && EMOTE[m[1]]; return e ? <span key={i}>{e}</span> : t; })}</>;
+export const VU = ({ v, n = 14, icon, label }: { v: number; n?: number; icon: ComponentChildren; label: string }) => { const on = Math.round((v / 100) * n); return <div class="vu" title={`${label} ${Math.round(v)}%`} aria-label={`${label} ${Math.round(v)} percent`}>{icon}<div class="seg">{Array.from({ length: n }, (_, i) => <i key={i} class={i < on ? (v < 22 ? 'c' : v < 45 ? 'b' : 'a') : ''} />)}</div></div>; };
+export const Key = ({ k }: { k: string }) => <span class="kbd">{k}</span>;
+export { money, fmt };
+export const condCol = (c: number) => (c > 60 ? '#2fa84f' : c > 30 ? '#f6c419' : '#f2331b');

@@ -1,0 +1,23 @@
+import { describe, expect, it } from 'vitest';
+import fs from 'fs';
+import { ITEMS, GAMES, HOMES, ROLES, SPONSORS } from '../../src/core/catalog';
+import { BODIES } from '../../src/core/staff';
+import { HOMES as HL } from './helpers';
+const A = 'public/assets/'; const has = (p: string) => fs.existsSync(A + p) && fs.statSync(A + p).size > 200; const json = (p: string) => JSON.parse(fs.readFileSync(A + p, 'utf8'));
+const glbMaterials = (p: string) => { const b = fs.readFileSync(A + p); expect(b.toString('ascii', 0, 4)).toBe('glTF'); const n = b.readUInt32LE(12); return (JSON.parse(b.toString('utf8', 20, 20 + n)).materials ?? []).map((m: any) => m.name as string); };
+describe('asset integrity', () => {
+  it.each(ITEMS.map((i) => i.id))('shop photo for %s', (id) => expect(has(`shop/${id}.webp`)).toBe(true));
+  it.each(HL)('listing photo for %s', (h) => expect(has(`shop/home_${h}.webp`)).toBe(true));
+  it('every prop referenced by an item exists', () => { const mats = json('props/materials.json'); for (const i of ITEMS) { const ids = i.slot === 'device' && i.id.startsWith('pc') ? [`rig_${i.id}`, `tower_${i.id}`] : i.prop ? [i.prop] : []; for (const p of ids) { expect(has(`props/${p}.glb`), p).toBe(true); for (const m of glbMaterials(`props/${p}.glb`)) expect(mats[m], `${p}:${m}`).toBeTruthy(); } } expect(has('props/headset.glb')).toBe(true); });
+  const chars = ['p_max', 'p_zoe', 'p_mei', 'p_dre', 'p_ivy', 'p_ken', 'mom_c', 'mom_a', 'mom_s', 'kyle', 'landlord', 'feast', ...BODIES.map((b) => b.id)];
+  it.each(chars)('character %s has mesh, portrait, metadata and every texture', (c) => { expect(has(`chars/${c}.glb`)).toBe(true); expect(has(`chars/${c}.webp`)).toBe(true); const m = json(`chars/${c}.json`); expect(m.height).toBeGreaterThan(1.4); expect(m.height).toBeLessThan(2.2); for (const t of Object.values(m.tex)) expect(has(`chars/tex/${t}`), String(t)).toBe(true); });
+  it.each(HL)('%s environment is complete', (h) => { for (const f of ['env.glb', 'env.json', 'materials.json', 'lm_day.webp', 'lm_lamp.webp', 'lm_led.webp', 'refl_day.webp', 'refl_lamp.webp']) expect(has(`env/${h}/${f}`), f).toBe(true); const mats = json(`env/${h}/materials.json`); for (const m of glbMaterials(`env/${h}/env.glb`)) { expect(mats[m], m).toBeTruthy(); if (mats[m].tex) { expect(has(`tex/${mats[m].tex}.webp`)).toBe(true); expect(has(`tex/${mats[m].tex}_nr.webp`)).toBe(true); } if (mats[m].art) expect(has(`art/${mats[m].art}.webp`)).toBe(true); } for (const b of json(`env/${h}/env.json`).meta.backdrops) for (const t of ['day', 'night']) expect(has(`env/bg/${b.img}_${t}.webp`)).toBe(true); });
+  it('whole download stays reasonable', () => { const size = (d: string): number => fs.readdirSync(d, { withFileTypes: true }).reduce((a, e) => a + (e.isDirectory() ? size(`${d}/${e.name}`) : fs.statSync(`${d}/${e.name}`).size), 0); expect(size('public/assets') / 1e6).toBeLessThan(120); });
+});
+describe('catalogue sanity', () => {
+  it('ids are unique', () => { for (const l of [ITEMS, GAMES, HOMES, ROLES] as { id: string }[][]) expect(new Set(l.map((x) => x.id)).size).toBe(l.length); });
+  it('every item has copy, a review, 1–5 stars and sane numbers', () => { for (const i of ITEMS) { expect(i.brand.length).toBeGreaterThan(1); expect(i.blurb.length).toBeGreaterThan(8); expect(i.rate.length).toBeGreaterThan(3); expect(i.stars).toBeGreaterThanOrEqual(1); expect(i.stars).toBeLessThanOrEqual(5); expect(i.price).toBeGreaterThanOrEqual(0); expect(i.dur).toBeLessThanOrEqual(1); } });
+  it('within a slot, pricier gear is better gear', () => { for (const slot of new Set(ITEMS.map((i) => i.slot))) { const l = ITEMS.filter((i) => i.slot === slot && i.price > 0).sort((a, b) => a.price - b.price); for (let k = 1; k < l.length; k++) if (!(l[k].id === 'laptop0' || l[k - 1].id === 'laptop0')) expect(l[k].q, `${l[k].id} vs ${l[k - 1].id}`).toBeGreaterThanOrEqual(l[k - 1].q); } });
+  it('only joke brands: no real trademark appears in the shop or games', () => { const real = /\b(apple|iphone|samsung|sony|logitech|nvidia|geforce rtx|razer|twitch|youtube|amazon|ikea|comcast|tiktok|fortnite|minecraft|elden ring|candy crush|subway surfers|flappy bird|beat saber|nokia|elgato|corsair|secretlab|herman miller|red bull|discord|zillow|linkedin|starlink|spectrum|mrbeast)\b/i; const text = JSON.stringify([ITEMS, GAMES, HOMES, ROLES, SPONSORS]); expect(text.match(real)?.[0]).toBeUndefined(); });
+  it('ladders exist: mobile at the start, AAA at the end', () => { expect(ITEMS.filter((i) => i.slot === 'device' && i.caps!.length === 1 && i.price === 0)).toHaveLength(1); expect(GAMES.filter((g) => g.need === 'mobile').length).toBeGreaterThanOrEqual(3); expect(GAMES.some((g) => g.need === 'aaa')).toBe(true); });
+});

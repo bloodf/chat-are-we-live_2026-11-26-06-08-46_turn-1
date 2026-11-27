@@ -1,0 +1,12 @@
+import { describe, expect, it } from 'vitest';
+import { understand, type Intent } from '../../src/core/nlu';
+const cases: [string, Intent][] = [['hello everyone welcome', 'greet'], ['thank you so much for the dono', 'thanks'], ['please follow and subscribe smash it', 'beg'], ['what should I play next?', 'question'], ['why did the chicken cross the road lol', 'joke'], ['LETS GOOOO THAT WAS INSANE', 'hype'], ['you are all stupid idiots', 'insult'], ['sorry chat, my bad, I apologize', 'apology'], ['i feel so sad and lonely and tired', 'vent'], ['I love you guys you are the best family', 'love'], ['goodnight everyone, ending the stream, see ya later', 'bye'], ['unpopular opinion pineapple is overrated', 'hottake'], ['la la la singing a song', 'sing'], ['today’s sponsor is BordVPN, use code CHAT', 'ad'], ['vote now, pick an option', 'poll'], ['believe in your dream and chase it together', 'motivate'], ['the curtain is a bit blue', 'statement'], ['xkcdfgh bnmzzq', 'nonsense']];
+describe('understand()', () => {
+  it.each(cases)('“%s” → %s', (t, i) => expect(understand(t).intent).toBe(i));
+  it('finds addressed viewers', () => { expect(understand('hey @sleepy_panda nice one', ['sleepy_panda', 'x']).target).toBe('sleepy_panda'); expect(understand('gary42 you rock', ['gary42']).target).toBe('gary42'); expect(understand('hi', ['gary42']).target).toBeUndefined(); });
+  it('reads sentiment, with negation', () => { expect(understand('this is great and fun').sentiment).toBeGreaterThan(0.3); expect(understand('this is terrible and boring').sentiment).toBeLessThan(-0.3); expect(understand('this is not good').sentiment).toBeLessThan(0); });
+  it('reads energy from caps, bangs and stretched letters', () => { expect(understand('WOOOOO YEAHHHH!!!').energy).toBeGreaterThan(0.6); expect(understand('ok.').energy).toBeLessThan(0.2); });
+  it('flags swearing and extracts a topic', () => { const s = understand('holy shit that raccoon'); expect(s.swear).toBe(true); expect(s.topic).toBe('raccoon'); });
+  it('survives junk input', () => { for (const t of ['', '   ', '!!!', '????', '😀😀😀', 'a'.repeat(1000), '<script>alert(1)</script>', '@@@', "'''"]) { const s = understand(t); expect(s.raw.length).toBeLessThanOrEqual(240); expect(Math.abs(s.sentiment)).toBeLessThanOrEqual(1); expect(s.energy).toBeLessThanOrEqual(1); } });
+  it('understands a little Portuguese and Spanish courtesy', () => { expect(understand('obrigado').intent).toBe('thanks'); expect(understand('hola').intent).toBe('greet'); });
+});

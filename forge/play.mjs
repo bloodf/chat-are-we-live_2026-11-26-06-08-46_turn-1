@@ -1,0 +1,8 @@
+// node forge/play.mjs "<query>" outdir step;step;...   steps: js code run in page, or "shot name", "wait ms", "click sel", "key k"
+import { chromium } from '@playwright/test'; import fs from 'fs';
+const [, , query, file, W = '1280', H = '720'] = process.argv; const steps = fs.readFileSync(file, 'utf8').split('\n').map(s => s.trim()).filter(s => s && !s.startsWith('#'));
+const b = await chromium.launch({ channel: 'chromium', args: ['--use-gl=angle', '--use-angle=gl', '--ignore-gpu-blocklist'] }); const p = await b.newPage({ viewport: { width: +W, height: +H } }); const seen = new Set();
+p.on('console', m => { const t = m.text().slice(0, 300); if (['error', 'warning'].includes(m.type()) && !seen.has(t)) { seen.add(t); console.log(m.type(), t); } }); p.on('pageerror', e => console.log('PAGEERR', String(e.stack || e).slice(0, 500)));
+await p.goto('http://127.0.0.1:5173/' + query); await p.waitForSelector('[data-testid=title]', { timeout: 120000 });
+for (const s of steps) { const [c, ...r] = s.split(' '); const a = r.join(' '); try { if (c === 'shot') { await p.screenshot({ path: `/home/model/.cache/spike/${a}.png`, timeout: 120000 }); console.log('shot', a); } else if (c === 'wait') await p.waitForTimeout(+a); else if (c === 'click') await p.click(a, { timeout: 20000 }); else if (c === 'sel') await p.waitForSelector(a, { timeout: 120000 }); else if (c === 'key') await p.keyboard.press(a); else if (c === 'type') await p.keyboard.type(a); else { const v = await p.evaluate(s.includes('await ') ? '(async()=>{'+s+'})()' : s); if (v !== undefined) console.log('>', typeof v === 'object' ? JSON.stringify(v).slice(0, 500) : v); } } catch (e) { console.log('STEP FAIL', s, String(e).slice(0, 300)); } }
+await b.close();

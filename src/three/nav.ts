@@ -1,0 +1,21 @@
+/** Grid navigation (A* + line-of-sight smoothing). Pure logic, unit-tested. */
+export type P2 = [number, number];
+export class Nav {
+  nx: number; nz: number; grid: Uint8Array;
+  constructor(public w: number, public d: number, blocks: number[][], public cell = 0.2, public radius = 0.22) {
+    this.nx = Math.ceil(w / cell); this.nz = Math.ceil(d / cell); this.grid = new Uint8Array(this.nx * this.nz);
+    for (let j = 0; j < this.nz; j++) for (let i = 0; i < this.nx; i++) { const [x, z] = this.pos(i, j); let b = Math.abs(x) > w / 2 - radius || Math.abs(z) > d / 2 - radius; if (!b) for (const q of blocks) if (x > q[0] - radius && x < q[2] + radius && z > q[1] - radius && z < q[3] + radius) { b = true; break; } this.grid[j * this.nx + i] = b ? 1 : 0; }
+  }
+  pos(i: number, j: number): P2 { return [-this.w / 2 + (i + 0.5) * this.cell, -this.d / 2 + (j + 0.5) * this.cell]; }
+  idx(x: number, z: number): [number, number] { return [Math.max(0, Math.min(this.nx - 1, Math.floor((x + this.w / 2) / this.cell))), Math.max(0, Math.min(this.nz - 1, Math.floor((z + this.d / 2) / this.cell)))]; }
+  free(i: number, j: number) { return i >= 0 && j >= 0 && i < this.nx && j < this.nz && this.grid[j * this.nx + i] === 0; }
+  walkable(x: number, z: number) { const [i, j] = this.idx(x, z); return Math.abs(x) < this.w / 2 && Math.abs(z) < this.d / 2 && this.free(i, j); }
+  nearest(x: number, z: number): P2 { const [i, j] = this.idx(x, z); if (this.free(i, j)) return [x, z]; let best: P2 = [0, 0], bd = 1e9; for (let r = 1; r < 30 && bd > 1e8; r++) for (let a = -r; a <= r; a++) for (let b = -r; b <= r; b++) { if (Math.max(Math.abs(a), Math.abs(b)) !== r || !this.free(i + a, j + b)) continue; const p = this.pos(i + a, j + b); const d = (p[0] - x) ** 2 + (p[1] - z) ** 2; if (d < bd) { bd = d; best = p; } } return best; }
+  los(a: P2, b: P2): boolean { const d = Math.hypot(b[0] - a[0], b[1] - a[1]); const n = Math.ceil(d / (this.cell * 0.5)); for (let k = 1; k < n; k++) { const t = k / n; const [i, j] = this.idx(a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t); if (!this.free(i, j)) return false; } return true; }
+  path(from: P2, to: P2): P2[] {
+    const s = this.nearest(...from), g = this.nearest(...to); const [si, sj] = this.idx(...s), [gi, gj] = this.idx(...g); if (si === gi && sj === gj) return [g]; const N = this.nx * this.nz, G = new Float32Array(N).fill(Infinity), par = new Int32Array(N).fill(-1), open: number[] = [], F = new Float32Array(N).fill(Infinity), closed = new Uint8Array(N); const st = sj * this.nx + si, gl = gj * this.nx + gi; const h = (k: number) => Math.hypot((k % this.nx) - gi, Math.floor(k / this.nx) - gj); G[st] = 0; F[st] = h(st);
+    const push = (k: number) => { open.push(k); let i = open.length - 1; while (i > 0) { const p = (i - 1) >> 1; if (F[open[p]] <= F[open[i]]) break; [open[p], open[i]] = [open[i], open[p]]; i = p; } }; const popm = () => { const r = open[0]; const l = open.pop()!; if (open.length) { open[0] = l; let i = 0; for (;;) { const a = 2 * i + 1, b = a + 1; let m = i; if (a < open.length && F[open[a]] < F[open[m]]) m = a; if (b < open.length && F[open[b]] < F[open[m]]) m = b; if (m === i) break; [open[m], open[i]] = [open[i], open[m]]; i = m; } } return r; };
+    push(st); while (open.length) { const c = popm(); if (c === gl) break; if (closed[c]) continue; closed[c] = 1; const ci = c % this.nx, cj = Math.floor(c / this.nx); for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) { if (!a && !b) continue; const ni = ci + a, nj = cj + b; if (!this.free(ni, nj)) continue; if (a && b && (!this.free(ci + a, cj) || !this.free(ci, cj + b))) continue; const k = nj * this.nx + ni; const g2 = G[c] + (a && b ? 1.4142 : 1); if (g2 < G[k]) { G[k] = g2; par[k] = c; F[k] = g2 + h(k); push(k); } } }
+    if (par[gl] < 0) return []; const cells: P2[] = []; for (let k = gl; k >= 0; k = par[k]) cells.push(this.pos(k % this.nx, Math.floor(k / this.nx))); cells.reverse(); cells[cells.length - 1] = g; const out: P2[] = []; let a: P2 = s, i = 0; while (i < cells.length - 1) { let j = cells.length - 1; while (j > i + 1 && !this.los(a, cells[j])) j--; out.push(cells[j]); a = cells[j]; i = j; } return out.length ? out : [g];
+  }
+}

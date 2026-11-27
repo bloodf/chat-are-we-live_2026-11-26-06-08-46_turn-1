@@ -1,0 +1,35 @@
+import { render } from 'preact';
+import { game, TEST } from './game';
+import { Title, Creator } from './ui/Title';
+import { Hud } from './ui/Hud';
+import { Phone } from './ui/Phone';
+import { Live } from './ui/Live';
+import { Dialogs, Talk, Recap, Paper, Show, Ending, Toasts, Sticky, Loading, PauseMenu } from './ui/Overlays';
+import { sfx, initAudio } from './audio/audio';
+import { INCIDENTS } from './core/incidents';
+import { makeCandidate, refreshCandidates } from './core/staff';
+import { RNG } from './core/rng';
+import '@fontsource/anton/latin-400';
+import '@fontsource/big-shoulders-display/latin-700';
+import '@fontsource/big-shoulders-display/latin-800';
+import '@fontsource/caveat-brush/latin-400';
+import '@fontsource/permanent-marker/latin-400';
+import '@fontsource-variable/schibsted-grotesk';
+import '@fontsource-variable/martian-mono';
+import './ui/style.css';
+function App() {
+  const sc = game.screen.value;
+  return <>{game.eng && game.eng.q.tier > 0 && <div class="vig" />}{sc === 'title' && <Title />}{sc === 'creator' && <Creator />}{sc === 'home' && <><Hud /><Phone /><Talk /></>}{sc === 'live' && <Live />}{sc === 'recap' && <Recap />}{sc === 'paper' && <Paper />}{sc === 'show' && <Show />}{sc === 'ending' && <Ending />}{!game.phone.value && !game.dialog.value && <Sticky />}<Dialogs /><Toasts />{game.paused.value && <PauseMenu />}<Loading /></>;
+}
+const canvas = document.getElementById('gl') as HTMLCanvasElement;
+render(<App />, document.getElementById('app')!);
+addEventListener('keydown', (e) => game.keydown(e)); addEventListener('keyup', (e) => game.keyup(e)); addEventListener('blur', () => { game.eng?.keys.clear(); game.input.keys.clear(); });
+let drag: { x: number; y: number; az: number; pol: number; moved: boolean } | null = null;
+canvas.addEventListener('pointerdown', (e) => { initAudio(); drag = { x: e.clientX, y: e.clientY, az: game.eng.azT, pol: game.eng.pol, moved: false }; });
+addEventListener('pointermove', (e) => { if (!drag) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; if (Math.abs(dx) + Math.abs(dy) > 6) drag.moved = true; if (drag.moved && game.screen.value === 'home') { game.eng.azT = drag.az - dx * 0.004; game.eng.pol = Math.max(0.55, Math.min(1.28, drag.pol - dy * 0.0028)); } });
+addEventListener('pointerup', (e) => { if (drag && !drag.moved && e.target === canvas) game.clickFloor(e.clientX, e.clientY); drag = null; });
+canvas.addEventListener('wheel', (e) => { if (game.screen.value === 'home') game.eng.zoomT = Math.max(0.45, Math.min(1.12, game.eng.zoomT + Math.sign(e.deltaY) * 0.07)); }, { passive: true });
+document.addEventListener('mouseover', (e) => { const b = (e.target as HTMLElement).closest?.('button'); if (b && !(b as HTMLButtonElement).disabled && game.hover.value !== b.textContent) { game.hover.value = b.textContent; sfx('hover'); } });
+addEventListener('beforeunload', () => game.save());
+if (TEST || new URLSearchParams(location.search).has('dbg')) Object.assign(((window as any).__game = game), { INCIDENTS, makeCandidate: (r: any) => makeCandidate(new RNG(Math.random() * 1e9), game.s!, r), refreshCandidates: () => refreshCandidates(game.s!, new RNG(11)) });
+game.boot(canvas).then(async () => { const a = new URLSearchParams(location.search); if (a.has('dbg') && a.has('auto')) { await game.newGame({ name: 'Max', channel: 'MaxPlays', body: 'p_max', difficulty: 'normal' }); if (a.get('auto') === 'live') { game.goLive('flappy', 'x'); game.hint.value = null; } } }).catch((e) => { console.error(e); const d = document.getElementById('app')!; d.innerHTML = `<div class="load"><div class="t" style="max-width:34rem;text-align:center;font-family:sans-serif">The stream could not start. Your browser needs WebGL 2 or WebGPU.<br><small>${String(e?.message ?? e).replace(/</g, '&lt;')}</small></div></div>`; });

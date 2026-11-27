@@ -1,0 +1,4 @@
+import { RNG } from '../core/rng'; import { MiniGame } from './base'; import { Flappy } from './flappy'; import { Candy } from './candy'; import { Runner } from './runner'; import { Shooter } from './shooter'; import { Rhythm } from './rhythm'; import { Souls } from './souls'; import { Yap } from './yap';
+export { MiniGame, Flappy, Candy, Runner, Shooter, Rhythm, Souls, Yap };
+export function makeGame(id: string, rng: RNG, best = 0, portrait = false): MiniGame { switch (id) { case 'candy': return new Candy(rng, best); case 'runner': return new Runner(rng, best); case 'shooter': return new Shooter(rng, best); case 'rhythm': return new Rhythm(rng, best); case 'souls': return new Souls(rng, best); case 'chat': { const y = new Yap(rng, best); if (portrait) { y.w = 360; y.h = 640; } return y; } default: return new Flappy(rng, best); } }
+export const isPortrait = (id: string) => id === 'flappy' || id === 'candy' || id === 'runner';
