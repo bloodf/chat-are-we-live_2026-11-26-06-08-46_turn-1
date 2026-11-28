@@ -119,6 +119,7 @@ h5.s { font: 800 1.15rem/1 var(--head); margin: 1.1rem 0 .5rem; }
 @media (prefers-reduced-motion: reduce) { * { animation-duration: .01ms !important; transition: none !important; } }
 
 .lowfx .device.ph { box-shadow: 0 0 0 .14rem #4c5158, 0 0 0 .26rem #0c0d0f; } .lowfx .device.mo { box-shadow: 0 0 0 .12rem #3a3f45; } .lowfx .phone { box-shadow: 0 0 0 .16rem #454a52, 0 0 0 .3rem #0c0d0f; animation: none; } .lowfx .sticker { filter: none; } .lowfx .title .ghostchat { mask-image: none; text-shadow: none; } .lowfx .apps button svg { box-shadow: none; } .lowfx .todo, .lowfx .bug, .lowfx .needs, .lowfx .dock { will-change: transform; }
+.menu button.item:focus-visible { outline: 2px solid var(--yel); outline-offset: 3px; }
 
 @media (max-width: 900px) {
   html { font-size: calc(14px * var(--ui)); }
