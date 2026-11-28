@@ -119,3 +119,53 @@ h5.s { font: 800 1.15rem/1 var(--head); margin: 1.1rem 0 .5rem; }
 @media (prefers-reduced-motion: reduce) { * { animation-duration: .01ms !important; transition: none !important; } }
 
 .lowfx .device.ph { box-shadow: 0 0 0 .14rem #4c5158, 0 0 0 .26rem #0c0d0f; } .lowfx .device.mo { box-shadow: 0 0 0 .12rem #3a3f45; } .lowfx .phone { box-shadow: 0 0 0 .16rem #454a52, 0 0 0 .3rem #0c0d0f; animation: none; } .lowfx .sticker { filter: none; } .lowfx .title .ghostchat { mask-image: none; text-shadow: none; } .lowfx .apps button svg { box-shadow: none; } .lowfx .todo, .lowfx .bug, .lowfx .needs, .lowfx .dock { will-change: transform; }
+
+@media (max-width: 900px) {
+  html { font-size: calc(14px * var(--ui)); }
+  #app { inset: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+  .title { display: block; overflow-y: auto; pointer-events: auto; }
+  .title .left { padding: 24px 20px; min-height: 100%; }
+  .logo { font-size: clamp(60px, 17vw, 100px); }
+  .logo .l1 { font-size: .52em; }
+  .title .sub { margin: 24px 0; max-width: 30ch; }
+  .title .ghostchat { display: none; }
+  .menu { margin-top: auto; padding-top: 16px; }
+  .menu button.item { min-height: 44px; }
+  .creator { display: flex; flex-direction: column; overflow-y: auto; pointer-events: auto; }
+  .creator .pick { align-self: stretch; padding: 24px 16px 16px; }
+  .creator .pick h2 { font-size: 3rem; }
+  .strip { overflow-x: auto; padding-top: 8px; }
+  .strip button { flex-shrink: 0; }
+  .form { margin: 0 12px 24px; padding: 20px; align-self: stretch; }
+  .form .row { flex-wrap: wrap; }
+  input, select, textarea { font-size: max(16px, 1em); }
+  .btn, .hit, .segs button, .replies button { min-height: 44px; }
+  .bug { left: 8px; right: 8px; top: 8px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 0; clip-path: none; }
+  .bug .cell { min-width: 0; padding: 6px 10px; }
+  .bug .cell b { overflow: hidden; text-overflow: ellipsis; }
+  .needs { left: 8px; top: 110px; }
+  .todo { left: 8px; right: 8px; top: 154px; width: auto; max-height: 24dvh; overflow-y: auto; }
+  .dock { left: 8px; right: 8px; bottom: 34px; gap: 6px; overflow-x: auto; }
+  .dock button { flex: 1 0 auto; padding: 12px; }
+  .dock .go { font-size: 1.2rem; padding: 12px; }
+  .kbd { display: none; }
+  .phone { inset: 0; width: 100%; height: 100%; max-height: 100%; transform: none; border-radius: 0; animation: none; }
+  .phone .scr { border-radius: 16px; }
+  .live { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; padding: 10px; pointer-events: auto; }
+  .lv-top, .stage, .deck, .chat, .meters, .cap, .pollb { position: relative; inset: auto; width: 100%; min-width: 0; flex-shrink: 0; }
+  .lv-top { flex-wrap: wrap; order: 0; }
+  .lv-top .ttl { flex-basis: 100%; }
+  .meters { display: flex; flex-wrap: wrap; order: 1; }
+  .stage { height: 48dvh; min-height: 260px; order: 2; }
+  .stage .hypewrap { max-height: 100%; }
+  .device.ph { max-width: calc(100% - 40px); max-height: 100%; }
+  .chat { height: 240px; order: 3; }
+  .deck { order: 4; display: grid; gap: 12px; padding-bottom: 12px; }
+  .reacts { justify-content: space-between; }
+  .reacts .sticker { width: 3rem; height: 3rem; }
+  .segs { margin: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .segs button { white-space: normal; }
+  .cap, .pollb { order: 5; }
+  .inc { position: fixed; left: 12px; right: 12px; top: 12px; bottom: auto; width: auto; min-width: 0; max-height: calc(100dvh - 24px); overflow-y: auto; }
+  .alert, .win { left: 12px; right: 12px; }
+}
